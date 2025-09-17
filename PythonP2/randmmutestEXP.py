@@ -1,5 +1,6 @@
+# randmmutest.py
 import unittest
-from randmmu import RandMMU
+from randmmuEXP import RandMMU
 import random
 
 class TestRandMMU(unittest.TestCase):
