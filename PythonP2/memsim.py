@@ -80,13 +80,21 @@ def main():
                 return
 
             no_events += 1
+            mmu.disk_accesses += 1
+
 
     # TODO: Print results
     print(f"total memory frames: {frames}")
     print(f"events in trace: {no_events}")
     print(f"total disk reads: {mmu.get_total_disk_reads()}")
     print(f"total disk writes: {mmu.get_total_disk_writes()}")
-    print(f"page fault rate: {mmu.get_total_page_faults() / frames}")
+    #print(f"page fault rate: {mmu.get_total_page_faults() / frames")
+    if mmu.get_disk_accesses() > 0:
+        rate = mmu.get_total_page_faults() / mmu.get_disk_accesses()
+        print(f"page fault rate: {rate:.4f}")
+    else:
+        print("Page Fault Rate: N/A")
+
 
 if __name__ == "__main__":
     main()

@@ -86,6 +86,7 @@ class RandMMU(MMU):
         if page_number in self.table:
             if self.debug:
                 print(f"Read hit: page {page_number} in frame {self.table[page_number]}")
+                print("="*50 + "\n")
             return False  # HIT
 
         # PAGE FAULT
@@ -100,6 +101,7 @@ class RandMMU(MMU):
 
         if self.debug:
             print(f"Read miss: loading page {page_number} into frame {frame} (disk_reads={self.disk_reads})")
+            print("="*50 + "\n")
 
 
         return True
@@ -110,6 +112,7 @@ class RandMMU(MMU):
             self.dirty_pages.add(page_number)
             if self.debug:
                 print(f"Write hit: marked page {page_number} dirty in frame {self.table[page_number]}")
+                print("="*50 + "\n")
             return False  # HIT
 
         # PAGE FAULT
@@ -125,6 +128,7 @@ class RandMMU(MMU):
 
         if self.debug:
             print(f"Write miss: loading page {page_number} into frame {frame} (disk_reads={self.disk_reads})")
+            print("="*50 + "\n")
 
         return True
 
