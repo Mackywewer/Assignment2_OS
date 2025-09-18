@@ -2,7 +2,7 @@ from mmu import MMU    # keep if the skeleton expects subclassing
 import random
 import sys
 
-class LruMMU(MMU):
+class lruMMU(MMU):
     PAGE_SIZE = 4096  # 4 KB pages
 
     def __init__(self, frames, debug=False):
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     debug = mode == "debug"
 
     if algorithm == "rand":
-        mmu = lruMMU(num_frames, debug=debug)
+        mmu = RandMMU(num_frames, debug=debug)
     else:
         print(f"Algorithm '{algorithm}' not implemented yet.")
         sys.exit(1)

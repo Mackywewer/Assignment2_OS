@@ -1,4 +1,3 @@
-# randmmutest.py
 import unittest
 from randmmuEXP import RandMMU
 import random
