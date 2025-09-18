@@ -22,6 +22,7 @@ class RandMMU(MMU):
         self.page_faults = 0
         self.disk_reads = 0
         self.disk_writes = 0
+        self.disk_accesses = 0
 
     # debug toggles
     def set_debug(self):
@@ -90,6 +91,7 @@ class RandMMU(MMU):
         # PAGE FAULT
         self.page_faults += 1
         self.disk_reads += 1
+        #self.disk_accesses += 1
         frame = self._allocate_frame_for(page_number)
 
         # install mapping
@@ -98,6 +100,7 @@ class RandMMU(MMU):
 
         if self.debug:
             print(f"Read miss: loading page {page_number} into frame {frame} (disk_reads={self.disk_reads})")
+
 
         return True
 
@@ -112,6 +115,7 @@ class RandMMU(MMU):
         # PAGE FAULT
         self.page_faults += 1
         self.disk_reads += 1
+        #self.disk_accesses += 1
         frame = self._allocate_frame_for(page_number)
 
         # install mapping and mark dirty
@@ -127,6 +131,9 @@ class RandMMU(MMU):
     # stats getters
     def get_total_disk_reads(self):
         return self.disk_reads
+    
+    def get_disk_accesses(self):
+        return self.disk_accesses
 
     def get_total_disk_writes(self):
         return self.disk_writes
@@ -180,12 +187,25 @@ def run_trace_file(filename, mmu, debug=False):
                 mmu.print_page_table()
 
             step_num += 1
+            mmu.disk_accesses += 1
+
+
 
     # Final stats
     print("\nFinal Stats:")
     print(f"Page Faults : {mmu.get_total_page_faults()}")
     print(f"Disk Reads  : {mmu.get_total_disk_reads()}")
     print(f"Disk Writes : {mmu.get_total_disk_writes()}")
+    print(f"Total accesses: {mmu.get_disk_accesses()}")
+
+    # Page Fault Rate
+    if mmu.get_disk_accesses() > 0:
+        rate = mmu.get_total_page_faults() / mmu.get_disk_accesses()
+        print(f"Page Fault Rate: {rate:.4f}")
+    else:
+        print("Page Fault Rate: N/A")
+
+
     print("="*50)
 
 
