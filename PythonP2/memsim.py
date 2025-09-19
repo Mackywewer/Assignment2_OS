@@ -40,7 +40,9 @@ def main():
     elif replacement_mode == "lru":
         mmu = LruMMU(frames)
     elif replacement_mode == "esc":
-        mmu = ClockMMU(frames)
+        #mmu = ClockMMU(frames)
+        mmu = RandMMU(frames)
+
     else:
         print("Invalid replacement mode. Valid options are [rand, lru, esc]")
         return

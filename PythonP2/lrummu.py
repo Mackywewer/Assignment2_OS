@@ -58,84 +58,114 @@ class LruMMU(MMU):
             self.table[content] = frame
 
     # internal helper to find free frame or evict using LRU
-    def _allocate_frame_for(self, page_number):
-        # first try to find a free frame
+    """def _allocate_frame_for(self, page_number):
+        #Return a free frame or evict the least recently used page.
+        # Try to find a free frame
         for idx, occupant in enumerate(self.frame_table):
             if occupant is None:
                 return idx
 
-        # no free frame: evict the least recently used page
-        lru_page = min(self.last_used, key=self.last_used.get)
-        victim_frame = self.table[lru_page]
-        victim_page = self.frame_table[victim_frame]
+        # No free frame: pick LRU victim
+        # The page with the smallest last_used counter
+        victim_page = min(self.last_used, key=self.last_used.get)
+        victim_frame = self.table[victim_page]
 
         if self.debug:
-            print(f"Evicting page {victim_page} (LRU) from frame {victim_frame}")
+            print(f"Evicting page {victim_page} from frame {victim_frame}")
 
-        # write back if dirty
+        # Write back if dirty
         if victim_page in self.dirty_pages:
             self.disk_writes += 1
             self.dirty_pages.remove(victim_page)
             if self.debug:
                 print(f"Writing dirty page {victim_page} to disk (disk_writes={self.disk_writes})")
 
-        # remove old mapping
-        if victim_page in self.table:
-            del self.table[victim_page]
-        if victim_page in self.last_used:
-            del self.last_used[victim_page]
+        # Remove old mappings
+        del self.table[victim_page]
+        del self.last_used[victim_page]
+        self.frame_table[victim_frame] = None
 
-        self.frame_table[victim_frame] = None  # mark frame as free
+        return victim_frame """
+    
+    def _allocate_frame_for(self, page_number):
+        """Return a free frame or evict the least recently used page."""
+        # Try to find a free frame
+        for idx, occupant in enumerate(self.frame_table):
+            if occupant is None:
+                return idx
+
+        # No free frame: pick LRU victim
+        victim_page = min(self.last_used, key=self.last_used.get)
+        victim_frame = self.table[victim_page]
+
+        if self.debug:
+            print(f"Evicting page {victim_page} from frame {victim_frame}")
+
+        # Write back if dirty
+        if victim_page in self.dirty_pages:
+            self.disk_writes += 1
+            self.dirty_pages.remove(victim_page)
+            if self.debug:
+                print(f"Writing dirty page {victim_page} to disk (disk_writes={self.disk_writes})")
+
+        # Remove old mappings
+        del self.table[victim_page]
+        del self.last_used[victim_page]
+        self.frame_table[victim_frame] = None
+
         return victim_frame
 
     # simulate read access
     def read_memory(self, page_number):
-        if page_number in self.table:
+        """Simulate a read access. Increment counter once per call."""
+        self.access_counter += 1  # only once per step
+
+        if page_number in self.table:  # HIT
             if self.debug:
                 print(f"Read hit: page {page_number} in frame {self.table[page_number]}")
                 print("="*50 + "\n")
-            return False  # HIT
+            self.last_used[page_number] = self.access_counter  # update LRU
+            return False
 
         # PAGE FAULT
         self.page_faults += 1
         self.disk_reads += 1
-        #self.disk_accesses += 1
-        self.access_counter += 1
-        self.last_used[page_number] = self.access_counter
         frame = self._allocate_frame_for(page_number)
 
         # install mapping
         self.frame_table[frame] = page_number
         self.table[page_number] = frame
+        self.last_used[page_number] = self.access_counter  # update LRU after allocation
 
         if self.debug:
             print(f"Read miss: loading page {page_number} into frame {frame} (disk_reads={self.disk_reads})")
             print("="*50 + "\n")
 
-
         return True
 
     # simulate write access
     def write_memory(self, page_number):
-        if page_number in self.table:
+        """Simulate a write access. Increment counter once per call."""
+        self.access_counter += 1  # only once per step
+
+        if page_number in self.table:  # HIT
             self.dirty_pages.add(page_number)
+            self.last_used[page_number] = self.access_counter  # update LRU
             if self.debug:
                 print(f"Write hit: marked page {page_number} dirty in frame {self.table[page_number]}")
                 print("="*50 + "\n")
-            return False  # HIT
+            return False
 
         # PAGE FAULT
         self.page_faults += 1
         self.disk_reads += 1
-        self.access_counter += 1
-        self.last_used[page_number] = self.access_counter
-        #self.disk_accesses += 1
         frame = self._allocate_frame_for(page_number)
 
         # install mapping and mark dirty
         self.frame_table[frame] = page_number
         self.table[page_number] = frame
         self.dirty_pages.add(page_number)
+        self.last_used[page_number] = self.access_counter  # update LRU after allocation
 
         if self.debug:
             print(f"Write miss: loading page {page_number} into frame {frame} (disk_reads={self.disk_reads})")

@@ -57,35 +57,33 @@ class lruMMU(MMU):
         if content is not None:
             self.table[content] = frame
 
-    # internal helper to find free frame or evict using LRU
     def _allocate_frame_for(self, page_number):
-        # first try to find a free frame
+        """Return a free frame or evict the least recently used page."""
+        # Try to find a free frame
         for idx, occupant in enumerate(self.frame_table):
             if occupant is None:
                 return idx
 
-        # no free frame: evict the least recently used page
-        lru_page = min(self.last_used, key=self.last_used.get)
-        victim_frame = self.table[lru_page]
-        victim_page = self.frame_table[victim_frame]
+        # No free frame: pick LRU victim
+        # The page with the smallest last_used counter
+        victim_page = min(self.last_used, key=self.last_used.get)
+        victim_frame = self.table[victim_page]
 
         if self.debug:
-            print(f"Evicting page {victim_page} (LRU) from frame {victim_frame}")
+            print(f"Evicting page {victim_page} from frame {victim_frame}")
 
-        # write back if dirty
+        # Write back if dirty
         if victim_page in self.dirty_pages:
             self.disk_writes += 1
             self.dirty_pages.remove(victim_page)
             if self.debug:
                 print(f"Writing dirty page {victim_page} to disk (disk_writes={self.disk_writes})")
 
-        # remove old mapping
-        if victim_page in self.table:
-            del self.table[victim_page]
-        if victim_page in self.last_used:
-            del self.last_used[victim_page]
+        # Remove old mappings
+        del self.table[victim_page]
+        del self.last_used[victim_page]
+        self.frame_table[victim_frame] = None
 
-        self.frame_table[victim_frame] = None  # mark frame as free
         return victim_frame
 
     # simulate read access
