@@ -3,33 +3,65 @@ from mmu import MMU
 
 class ClockMMU(MMU):
     def __init__(self, frames):
-        # TODO: Constructor logic for EscMMU
-        pass
+        self.frames = frames
+        self.frames_table = [None] * frames
+        self.reference_bits = [0] * frames
+        self.dirty_bits = [0] * frames
+        self.page_to_frame = {}
+        self.clock_hand = 0
+        self.page_faults = 0
+        self.disk_reads = 0
+        self.disk_writes = 0
+        self.debug = False
 
     def set_debug(self):
-        # TODO: Implement the method to set debug mode
-        pass
+        self.debug = True
 
     def reset_debug(self):
-        # TODO: Implement the method to reset debug mode
-        pass
+        self.debug = False
 
     def read_memory(self, page_number):
-        # TODO: Implement the method to read memory
-        pass
+        if page_number in self.page_to_frame:
+            frame_index = self.page_to_frame[page_number]
+            self.reference_bits[frame_index] = 1
+            if self.debug:
+                print(f"Page {page_number} found in frame {frame_index}.")
+            return False
+        self.page_faults += 1
+        self.disk_reads += 1
+        frame = self._allocate_frame_for(page_number, is_write=False)
+        self.frames_table[frame] = page_number
+        self.page_to_frame[page_number] = frame
+        self.reference_bits[frame] = 1
+        self.dirty_bits[frame] = 0
+        if self.debug:
+            print(f"Read miss: loading page {page_number} into frame {frame} (disk reads={self.disk_reads}).")
+        return True
 
     def write_memory(self, page_number):
-        # TODO: Implement the method to write memory
-        pass
+        if page_number in self.page_to_frame:
+            frame_index = self.page_to_frame[page_number]
+            self.reference_bits[frame] = 1
+            self.dirty_bits[frame] = 1
+            if self.debug:
+                print(f"Write hit: marked page {page_number} dirty in frame {frame}.")
+            return False
+        self.page_faults += 1
+        self.disk_reads += 1
+        frame = self._allocate_frame_for(page_number, is_write=True)
+        self.frames_table[frame] = page_number
+        self.page_to_frame[page_number] = frame
+        self.reference_bits[frame] = 1
+        self.dirty_bits[frame] = 1
+        if self.debug:
+            print(f"Write miss: loading page {page_number} into frame {frame} (disk reads={self.disk_reads}).")
+        return True
 
     def get_total_disk_reads(self):
-        # TODO: Implement the method to get total disk reads
-        return -1
+        return self.disk_reads
 
     def get_total_disk_writes(self):
-        # TODO: Implement the method to get total disk writes
-        return -1
+        return self.disk_writes
 
     def get_total_page_faults(self):
-        # TODO: Implement the method to get total page faults
-        return -1
+        return self.page_faults
